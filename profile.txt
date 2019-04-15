@@ -1,0 +1,8 @@
+URL: https://employcommunity-developer-edition.ap8.force.com/CustomerExperience/s/login/
+
+UID: itcemptim@itcinfotech.com
+Password: welcome123
+
+UID: lauren@itcinfotech.com/welcome123
+Password: welcome123
+ 
