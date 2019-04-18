@@ -1,0 +1,72 @@
+Class: GenerateEmpKRAObjectives
+
+global class GenerateEmpKRAObjectives {
+    webservice static void empKRAObjectivies(Id empId){
+        list<Employee_FY_KRA__c> empklist=[select id,name,Company_FY_KRA__r.id from Employee_FY_KRA__c where id=:empId limit 1];
+        Id compRecID= empklist[0].Company_FY_KRA__r.id;
+        system.debug('...compRecID...'+compRecID);
+        list<Company_FY_KRA__c> complist=[select id,name,Financial_Year__c,Grade__c,(select id,name,Company_FY_KRA__c,Competency_Name__c,Competency_Rating__c,Objective_Description__c,Weightage__c from Company_FY_KRA_Objectives__r),(select id,name,Company_FY_KRA__c,Department__c, Employee_ID__c,Employee_Name__c,Grade__c,Manager_Name__c, Normalized_Rating__c,Overall_Band__c,Period__c,Review_Date__c,Status__c,Total_Weightage__c from Employee_FY_KRAs__r) from Company_FY_KRA__c where id=:compRecID ];
+        list<Employee_FY_KRA_Objective__c> empKRAObjList = new list<Employee_FY_KRA_Objective__c>();
+        
+        for(Company_FY_KRA__c ck:complist){
+            for(Company_FY_KRA_Objective__c Compobjecitives:ck.Company_FY_KRA_Objectives__r){
+                for(Employee_FY_KRA__c empKRA: ck.Employee_FY_KRAs__r){
+                    if(ck.Grade__c== empKRA.Grade__c){
+                        Employee_FY_KRA_Objective__c empKRAObjective = new Employee_FY_KRA_Objective__c();
+                        empKRAObjective.Competency_Name__c= Compobjecitives.Competency_Name__c;
+                        empKRAObjective.Competency_Rating__c = Compobjecitives.Competency_Rating__c;
+                        empKRAObjective.Objective_Description__c = Compobjecitives.Objective_Description__c;
+                        empKRAObjective.Name = Compobjecitives.Name;
+                        empKRAObjective.Weightage__c = Compobjecitives.Weightage__c;
+                        empKRAObjective.Performance_Review_Number__c = empKRA.id;             
+                        empKRAObjList.add(empKRAObjective);
+                    }
+                    
+                }
+                
+            }
+        }
+        
+        system.debug('...........'+empKRAObjList);
+        
+        insert empKRAObjList; 
+        
+    }
+}
+=========================================================================================================================
+Custom button using js: Navigate to custom object Employee FY KRA => Buttons, Links & Actions =>New Button
+
+Label - Pull Company KRA Objectives
+*Name - Pull_Company_KRA_Objectives
+Display Type - Detail Page Button 
+Behavior- Execute Java Script
+Content Source - OnClick JavaScript
+Select Field Type - Employee FY KRA
+
+{!REQUIRESCRIPT("/soap/ajax/36.0/connection.js")}
+{!REQUIRESCRIPT("/soap/ajax/36.0/apex.js")} 
+//var recID='{!Employee_FY_KRA__c.Employee_ID__c}';
+var result = sforce.apex.execute("GenerateEmpKRAObjectives","empKRAObjectivies",{"empId":'{!Employee_FY_KRA__c.Id}'});
+var tt =this.value;
+alert(tt);
+window.location.href="/{!Employee_FY_KRA__c.Id}";
+===========================================================================================================================
+Trigger:
+trigger DupeCheck on Employee_FY_KRA__c (before insert) {
+    List<Employee_FY_KRA__c> ac=[select checkdupes__c from Employee_FY_KRA__c];
+    for(Employee_FY_KRA__c a:trigger.new)
+    {
+        for(Employee_FY_KRA__c acc:ac)
+        {  
+            if(acc.checkdupes__c ==a.Emp_ID_Calc__c+('01/04/'+string.valueOf(system.today().year()-1)+' - '
+                                                     +'31/03/'+string.valueOf(system.today().year()))) 
+            {  
+                 system.debug(acc.checkdupes__c);
+                system.debug(a.Emp_ID_Calc__c+('01/04/'+string.valueOf(system.today().year()-1)+' - '
+                                                     +'31/03/'+string.valueOf(system.today().year())));
+                a.addError('Duplicate record  found for Employee ID '+a.Emp_ID_Calc__c+' in this FY ');
+            }
+        }
+    }
+}
+
